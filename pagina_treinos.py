@@ -62,7 +62,7 @@ def render_adicionar_treino():
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="tr-header">🏋️ Treinos</div>', unsafe_allow_html=True)
+    st.markdown('<div class="tr-header">Treinos</div>', unsafe_allow_html=True)
     st.markdown('<div class="tr-sub">Monte seus planos de treino com os exercícios disponíveis</div>', unsafe_allow_html=True)
 
     # ── Carregar exercícios disponíveis ───────────────────────────────────────
@@ -214,7 +214,7 @@ def render_adicionar_treino():
         })
 
     for treino_nome, exercicios in por_treino.items():
-        with st.expander(f"🏋️ {treino_nome}  ({len(exercicios)} exercícios)"):
+        with st.expander(f"{treino_nome}  ({len(exercicios)} exercícios)"):
             for ex in exercicios:
                 st.markdown(
                     f"<div class='treino-card-ex'>• <b>{ex['exercicio']}</b> "

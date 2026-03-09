@@ -1,5 +1,5 @@
 import streamlit as st
-import streamlit.components.v1 as components
+
 import os
 import json
 from datetime import datetime
@@ -47,21 +47,30 @@ from pagina_estatisticas import render_estatisticas
 create_database()
 
 def colapsar_sidebar():
-    components.html(
-        """<script>
-        (function() {
-            var btn = window.parent.document.querySelector('[data-testid="stSidebarCollapseButton"] button');
-            if (btn) { btn.click(); }
-        })();
-        </script>""",
-        height=0
-    )
+    st.markdown("""
+    <script>
+    (function() {
+        var btn = window.parent.document.querySelector('[data-testid="stSidebarCollapseButton"] button');
+        if (btn) { btn.click(); }
+    })();
+    </script>
+    """, unsafe_allow_html=True)
 
 
 
 # ── Estilo global ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+            
+/* Esconde tudo no header */
+[data-testid="stToolbar"] { visibility: hidden !important; }
+[data-testid="stStatusWidget"] { visibility: hidden !important; }
+#MainMenu { visibility: hidden !important; }
+footer { visibility: hidden !important; }
+
+/* Mostra só o botão >> */
+[data-testid="stExpandSidebarButton"] { visibility: visible !important; }
+[data-testid="stExpandSidebarButton"] * { visibility: visible !important; }
 /* ── Esconde botão de colapsar sidebar ── */
 [data-testid="stSidebarCollapseButton"] {
     display: none !important;
@@ -135,18 +144,48 @@ st.markdown("""
     max-width: 1200px;
 }
 
-/* Streamlit radio buttons ocultos – usamos botões customizados */
+/* ── Mantém 3 colunas lado a lado no mobile (revertido nas outras páginas) ── */
+@media (max-width: 1200px) {
+    div[data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        flex-direction: row !important;
+        gap: 0.3rem !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        min-width: 0 !important;
+        flex: 1 1 0% !important;
+        width: auto !important;
+    }
+}
+/* ── Remove bordas extras do number_input ── */
+div[data-testid="stNumberInputContainer"] {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+div[data-testid="stNumberInputContainer"] [data-baseweb="input"] {
+    border: 1px solid #444 !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
+}
+/* ── Esconde botões +/- fora da caixa ── */
+button[data-testid="stNumberInputStepDown"],
+button[data-testid="stNumberInputStepUp"] {
+    display: none !important;
+}
+
+/* ── Streamlit radio buttons ocultos – usamos botões customizados ── */
 div[data-testid="stRadio"] label {
     display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
+
 # ── Sidebar Navigation ────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">🏋️</div>
         <div class="sidebar-logo-text">Gym<span>Tracker</span></div>
     </div>
     """, unsafe_allow_html=True)
@@ -156,20 +195,20 @@ with st.sidebar:
         st.session_state.pagina_atual = "Registrar Treino"
 
     pages = [
-        ("🏃", "Registrar Treino"),
-        ("💪", "Exercícios"),
-        ("🏋️", "Planos de Treino"),
-        ("📊", "Estatísticas"),
+        "Registrar Treino",
+        "Exercícios",
+        "Planos de Treino",
+        "Estatísticas",
     ]
 
-    for icon, page_name in pages:
+    for page_name in pages:
         is_active = st.session_state.pagina_atual == page_name
         active_style = (
             "background:#1e1e1e;color:#fff;border-left:3px solid #FF0000;"
         ) if is_active else ""
         col_btn = st.container()
         if st.button(
-            f"{icon}  {page_name}",
+            label = page_name,
             key=f"nav_{page_name}",
             use_container_width=True,
             type="secondary",
@@ -179,10 +218,6 @@ with st.sidebar:
             st.rerun()
 
     st.markdown("<div style='height:1px;background:#2a2a2a;margin:1rem 0'></div>", unsafe_allow_html=True)
-    st.markdown(
-        "<div style='color:#444;font-size:0.75rem;text-align:center;padding:0.5rem'>v1.0 · GymTracker</div>",
-        unsafe_allow_html=True
-    )
 
 # ── Colapsar sidebar se vier de navegação ──
 if st.session_state.get('_colapsar_sidebar'):
@@ -230,9 +265,8 @@ if pagina == "Registrar Treino":
     .reg-sub { color:#888;font-size:0.9rem;margin-bottom:1.5rem; }
     </style>
     """, unsafe_allow_html=True)
-    st.markdown('<div class="reg-header">🏃 Registrar Treino</div>', unsafe_allow_html=True)
-    st.markdown('<div class="reg-sub">Registre suas séries, pesos e repetições</div>', unsafe_allow_html=True)
-
+    st.markdown('<div class="reg-header">Registrar Treino</div>', unsafe_allow_html=True)
+    
     treinos_existentes = list(set(t[1] for t in listar_treinos()))
 
     if not treinos_existentes:
@@ -270,9 +304,8 @@ if pagina == "Registrar Treino":
             "Média dos últimos 3 treinos (AVG 3T)": "AVG 3T:",
         }
 
-        col1, col2 = st.columns(2)
-        with col1:
-            selected = st.selectbox("Referência histórica", options, key=f"select_{treino_selecionado}")
+        
+        selected = st.selectbox("Referência histórica", options, key=f"select_{treino_selecionado}")
 
         if exercicios:
             for idx, exercicio in enumerate(exercicios):
@@ -297,9 +330,6 @@ if pagina == "Registrar Treino":
                             historico_info = None
 
                         with st.container():
-                            col0, colN, col2, col3, col4 = st.columns([1, 2, 4, 4, 4])
-                            colN.metric("Série", numero_serie)
-
                             rc = st.session_state.form_reset_counter
                             peso_key = f"peso_{idx}_{aparelho}_{serie_index}"
                             reps_key = f"reps_{idx}_{aparelho}_{serie_index}"
@@ -318,35 +348,43 @@ if pagina == "Registrar Treino":
                                     save_form_data(st.session_state.form_data)
                                 return _save
 
-                            col2.number_input("peso", key=peso_wkey, value=int(peso_value),
-                                              min_value=0, step=1,
-                                              on_change=_make_saver(peso_wkey, peso_key))
-                            col3.number_input("repetições", key=reps_wkey, value=int(reps_value),
-                                              min_value=0, step=1,
-                                              on_change=_make_saver(reps_wkey, reps_key))
-                            col4.number_input("RIR", key=rir_wkey, value=int(rir_value),
-                                              min_value=0, step=1,
-                                              on_change=_make_saver(rir_wkey, rir_key))
+                            label = dict_options[selected]
+                            if historico_info:
+                                peso_info = f"{historico_info['peso']:.1f}kg"
+                                reps_info = f"{int(historico_info['reps'])} reps"
+                                rir_info  = f"RIR {int(historico_info['rir'])}"
+                            else:
+                                peso_info = reps_info = rir_info = "—"
 
-                            col0.markdown(
-                                "<div style='background-color:#FF0000;width:30px;height:130px;border-radius:5px;'></div>",
+                            # Linha 1: badge série + referência histórica
+                            st.markdown(
+                                f"<div style='display:flex;align-items:center;gap:10px;margin-bottom:6px;'>"
+                                f"  <div style='background:#FF0000;color:#000;font-weight:900;font-size:0.8rem;"
+                                f"              padding:3px 12px;border-radius:20px;'>Série {numero_serie}</div>"
+                                f"  <div style='font-size:0.75rem;color:#666;'>{label}</div>"
+                                f"  <div style='background:#1a1a1a;border:1px solid #333;border-radius:8px;"
+                                f"              padding:4px 12px;font-size:0.78rem;color:#aaa;flex:1;"
+                                f"              display:flex;justify-content:space-between;'>"
+                                f"    <span><b style='color:#FF0000'>{peso_info}</b></span>"
+                                f"    <span><b style='color:#FF0000'>{reps_info}</b></span>"
+                                f"    <span><b style='color:#FF0000'>{rir_info}</b></span>"
+                                f"  </div>"
+                                f"</div>",
                                 unsafe_allow_html=True
                             )
-                            label = dict_options[selected]
-                            colN.markdown(label)
 
-                            if historico_info:
-                                peso_info = f"{int(historico_info['peso'])}kg"
-                                reps_info = f"{int(historico_info['reps'])}"
-                                rir_info  = f"{int(historico_info['rir'])}"
-                            else:
-                                peso_info = reps_info = rir_info = "Sem histórico"
-
-                            for col, info in [(col2, peso_info), (col3, reps_info), (col4, rir_info)]:
-                                col.markdown(
-                                    f"<div style='background-color:#FF0000;padding:8px;border-radius:5px;color:black;'>{info}</div>",
-                                    unsafe_allow_html=True
-                                )
+                            # Linha 2: inputs peso / reps / RIR
+                            col_p, col_r, col_rir = st.columns(3)
+                            col_p.number_input("Peso (kg)", key=peso_wkey, value=int(peso_value),
+                                               min_value=0, step=1,
+                                               on_change=_make_saver(peso_wkey, peso_key))
+                            col_r.number_input("Reps", key=reps_wkey, value=int(reps_value),
+                                               min_value=0, step=1,
+                                               on_change=_make_saver(reps_wkey, reps_key))
+                            col_rir.number_input("RIR", key=rir_wkey, value=int(rir_value),
+                                                 min_value=0, step=1,
+                                                 on_change=_make_saver(rir_wkey, rir_key))
+                            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns([1, 1, 2])
         with col1:
@@ -383,29 +421,52 @@ if pagina == "Registrar Treino":
                 st.rerun()
 
         if st.session_state.get("confirmar_submit"):
-            st.info(f"💾 Confirma o salvamento do treino **{treino_selecionado}**?")
+            # Conta quantas séries serão salvas (ignora zeros)
+            series_validas = 0
+            for idx, exercicio in enumerate(exercicios):
+                (_, _, aparelho, _, num_series, _) = exercicio
+                for serie_index in range(num_series):
+                    peso_key = f"peso_{idx}_{aparelho}_{serie_index}"
+                    reps_key = f"reps_{idx}_{aparelho}_{serie_index}"
+                    p = st.session_state.form_data.get(peso_key, 0)
+                    r = st.session_state.form_data.get(reps_key, 0)
+                    if not (p == 0 and r == 0):
+                        series_validas += 1
+
+            st.info(
+                f"💾 Confirma o salvamento do treino **{treino_selecionado}**? "
+                f"({series_validas} série(s) com dados serão salvas — séries com peso e reps zero são ignoradas)"
+            )
             col_sim2, col_nao2, _ = st.columns([1, 1, 4])
             with col_sim2:
                 if st.button("✅ Sim, salvar", use_container_width=True, type="primary"):
                     st.session_state.confirmar_submit = False
                     try:
                         data_treino = datetime.now().strftime("%Y-%m-%d")
+                        series_salvas = 0
                         for idx, exercicio in enumerate(exercicios):
                             (_, _, aparelho, _, num_series, _) = exercicio
                             for serie_index in range(num_series):
                                 peso_key = f"peso_{idx}_{aparelho}_{serie_index}"
                                 reps_key = f"reps_{idx}_{aparelho}_{serie_index}"
                                 rir_key  = f"rir_{idx}_{aparelho}_{serie_index}"
+                                p = st.session_state.form_data.get(peso_key, 0)
+                                r = st.session_state.form_data.get(reps_key, 0)
+                                rir = st.session_state.form_data.get(rir_key, 0)
+
+                                # ── Ignora séries com peso=0 E reps=0 ──────
+                                if p == 0 and r == 0:
+                                    continue
+
                                 adicionar_historico(
                                     data_treino, treino_selecionado, aparelho,
-                                    st.session_state.form_data.get(peso_key, 0),
-                                    serie_index + 1,
-                                    st.session_state.form_data.get(reps_key, 1),
-                                    st.session_state.form_data.get(rir_key, 0),
+                                    p, serie_index + 1, r, rir,
                                 )
+                                series_salvas += 1
+
                         st.session_state.form_data = {}
                         clear_form_data()
-                        st.success("✓ Treino salvo com sucesso no histórico!")
+                        st.success(f"✓ Treino salvo! {series_salvas} série(s) registrada(s) no histórico.")
                         st.stop()
                     except Exception as e:
                         st.error(f"Erro ao salvar treino: {str(e)}")
@@ -415,10 +476,28 @@ if pagina == "Registrar Treino":
                     st.rerun()
 
 elif pagina == "Exercícios":
+    st.markdown("""<style>
+    @media (max-width: 1200px) {
+        div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; flex-direction: row !important; }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] { flex: 1 1 100% !important; width: 100% !important; }
+    }
+    </style>""", unsafe_allow_html=True)
     render_adicionar_exercicio()
 
 elif pagina == "Planos de Treino":
+    st.markdown("""<style>
+    @media (max-width: 1200px) {
+        div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; flex-direction: row !important; }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] { flex: 1 1 100% !important; width: 100% !important; }
+    }
+    </style>""", unsafe_allow_html=True)
     render_adicionar_treino()
 
 elif pagina == "Estatísticas":
+    st.markdown("""<style>
+    @media (max-width: 1200px) {
+        div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; flex-direction: row !important; }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] { flex: 1 1 100% !important; width: 100% !important; }
+    }
+    </style>""", unsafe_allow_html=True)
     render_estatisticas()

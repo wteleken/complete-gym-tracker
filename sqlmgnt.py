@@ -55,7 +55,6 @@ def create_database():
 
     conn.commit()
     conn.close()
-    print("✓ Database initialized successfully")
 
 
 # ==============================================================================

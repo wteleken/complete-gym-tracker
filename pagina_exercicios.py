@@ -49,7 +49,7 @@ def render_adicionar_exercicio():
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="ex-header">💪 Exercícios</div>', unsafe_allow_html=True)
+    st.markdown('<div class="ex-header">Exercícios</div>', unsafe_allow_html=True)
     st.markdown('<div class="ex-sub">Cadastre e gerencie sua biblioteca de exercícios</div>', unsafe_allow_html=True)
 
     # ── Formulário de adição ──────────────────────────────────────────────────
@@ -76,8 +76,7 @@ def render_adicionar_exercicio():
         st.session_state.ex_musculos[foco_primario] = 100
 
     st.markdown("**Distribuição de volume por músculo:**")
-    st.caption("O percentual representa quanto deste exercício contribui para o volume de cada músculo. Não precisa somar 100%.")
-
+    
     # Linha do músculo primário
     col_m, col_p, col_add_rem = st.columns([3, 2, 1])
     with col_m:

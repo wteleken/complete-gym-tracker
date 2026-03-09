@@ -36,10 +36,10 @@ def chart_barras(data, col_nome, col_valor, height=300):
         return
     nomes = [row[0] for row in data]
     valores = [row[1] for row in data]
-    df = pd.DataFrame({col_valor: valores}, index=nomes)
+    df = pd.DataFrame({col_valor: valores}, index=nomes).round(0)
     df.index.name = col_nome
     d = df[col_valor].to_dict()
-    st.bar_chart(d, color="#FF0000", height=height, sort = False, horizontal = True)
+    st.bar_chart(d, color="#FF0000", height=height, sort=False, horizontal=True)
 
 # ── Render ────────────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ def render_estatisticas():
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="stats-header">📊 Estatísticas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="stats-header">Estatísticas</div>', unsafe_allow_html=True)
     st.markdown('<div class="stats-sub">Acompanhe sua evolução e recordes pessoais</div>', unsafe_allow_html=True)
 
     stats_gerais = obter_stats_gerais()
@@ -102,25 +102,24 @@ def render_estatisticas():
         kpi_card(col4, f"{stats_gerais.get('volume_total', 0):,.0f} kg", "Volume total (kg×reps)")
 
         divider()
-        st.markdown("#### 📈 Volume semanal (início na segunda-feira)")
+        st.markdown('<div class="chart-title">Volume semanal</div>', text_alignment="center",
+                    unsafe_allow_html=True)
         chart_volume_semanal(obter_volume_semanal())
 
         divider()
 
-        # ── Dois gráficos lado a lado ─────────────────────────────────────────
-        col_g1, col_g2 = st.columns(2)
 
-        with col_g1:
-            st.markdown('<div class="chart-title">💪 Volume semanal por músculo (últimas 3 semanas)</div>',
-                        unsafe_allow_html=True)
-            chart_barras(obter_media_volume_semanal_por_musculo(n_semanas=3),
-                         "Músculo", "Média Vol. (kg×reps)", height=400)
+        st.markdown('<div class="chart-title">Volume semanal por músculo (AVG 3W)</div>',
+                    unsafe_allow_html=True, text_alignment="center")
+        chart_barras(obter_media_volume_semanal_por_musculo(n_semanas=3),
+                        "Músculo", "Média Vol. (kg×reps)", height=320)
 
-        with col_g2:
-            st.markdown('<div class="chart-title">🏋️ Volume semanal por exercício (últimas 3 semanas)</div>',
-                        unsafe_allow_html=True)
-            chart_barras(obter_media_volume_semanal_todos_exercicios(n_semanas=3),
-                         "Exercício", "Média Vol. (kg×reps)", height=400)
+        divider()
+
+        st.markdown('<div class="chart-title">Volume semanal por exercício (AVG 3W)</div>',
+                    unsafe_allow_html=True, text_alignment="center")
+        chart_barras(obter_media_volume_semanal_todos_exercicios(n_semanas=3),
+                        "Exercício", "Média Vol. (kg×reps)", height=320)
 
     # ══════════════════════════════════════════════════════════════════════════
     # MODO: TREINO
@@ -141,7 +140,8 @@ def render_estatisticas():
         kpi_card(col2, f"{stats.get('volume_total', 0):,.0f} kg", "Volume total (kg×reps)")
 
         divider()
-        st.markdown(f"#### 📈 Volume semanal — {treino_sel}")
+        st.markdown(f'<div class="chart-title">Volume semanal - {treino_sel}</div>',
+                    unsafe_allow_html=True, text_alignment="center")
         chart_volume_semanal(obter_volume_semanal(treino_nome=treino_sel))
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -165,14 +165,13 @@ def render_estatisticas():
         divider()
 
         col_g1, col_g2 = st.columns(2)
-
         with col_g1:
-            st.markdown(f"#### 📈 Volume semanal — {foco_sel}")
-            chart_volume_semanal(obter_volume_por_data_musculo(foco_sel))
-
-        with col_g2:
-            st.markdown(f'<div class="chart-title">📊 Volume semanal por exercício — {foco_sel} (últ. 3 semanas)</div>',
+            st.markdown(f'<div class="chart-title">Volume semanal — {foco_sel}</div>', text_alignment= "center",
                         unsafe_allow_html=True)
+            chart_volume_semanal(obter_volume_por_data_musculo(foco_sel))
+        with col_g2:
+            st.markdown(f'<div class="chart-title">Volume semanal por exercício — {foco_sel} (AVG 3W)</div>',
+                        unsafe_allow_html=True, text_alignment="center")
             chart_barras(obter_media_volume_semanal_por_exercicio_musculo(foco_sel, n_semanas=3),
                          "Exercício", "Média Vol. (kg×reps)", height=300)
 
@@ -181,39 +180,34 @@ def render_estatisticas():
     # ══════════════════════════════════════════════════════════════════════════
     elif modo == "Frequência":
         from datetime import date, timedelta
-        import streamlit.components.v1 as components
 
-        dias = obter_dias_frequentados()  # {data_str: n_sessoes}
+        dias = obter_dias_frequentados()
 
         if not dias:
             st.info("Nenhum treino registrado ainda.")
         else:
-            # Período: últimos 365 dias até hoje
             hoje = date.today()
             inicio = hoje - timedelta(days=364)
 
-            # Total de dias treinados e streak atual
             datas = sorted(dias.keys())
             total_dias = len(datas)
 
-            # Streak atual
             streak = 0
             d = hoje
             while d.strftime("%Y-%m-%d") in dias:
                 streak += 1
                 d -= timedelta(days=1)
 
-            # KPIs
             col1, col2, col3 = st.columns(3)
             kpi_card(col1, total_dias, "Dias treinados")
             kpi_card(col2, streak, "Streak atual (dias)")
             kpi_card(col3, len([d for d in datas if d >= (hoje - timedelta(days=30)).strftime("%Y-%m-%d")]), "Treinos último mês")
 
             divider()
-            st.markdown("#### 📅 Atividade nos últimos 12 meses")
+            st.markdown(f'<div class="chart-title">Atividade nos últimos 12 meses<div>', 
+                        unsafe_allow_html=True, text_alignment="center")
+            st.write("")
 
-            # Montar grade: semanas como colunas, dias da semana como linhas (seg=0 a dom=6)
-            # Início na segunda-feira da semana que contém 'inicio'
             start_monday = inicio - timedelta(days=inicio.weekday())
             weeks = []
             current = start_monday
@@ -226,62 +220,73 @@ def render_estatisticas():
                 weeks.append(week)
                 current += timedelta(days=7)
 
-            # Gerar HTML da grade
             day_labels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-            month_labels_html = ""
             month_seen = set()
 
+            # ── Desktop ───────────────────────────────────────────────────────
             cells_by_row = [[] for _ in range(7)]
             for week in weeks:
                 for row_idx, (day, ds, count) in enumerate(week):
                     if day < inicio or day > hoje:
-                        color = "transparent"
-                        border = "none"
-                        tooltip = ""
+                        color = "transparent"; border = "none"; tooltip = ""
                     elif count == 0:
-                        color = "#1a1a1a"
-                        border = "1px solid #2a2a2a"
-                        tooltip = ds
+                        color = "#1a1a1a"; border = "1px solid #2a2a2a"; tooltip = ds
                     else:
-                        color = "#FF0000"
-                        border = "none"
-                        tooltip = f"{ds}: {count} treino(s)"
+                        color = "#FF0000"; border = "none"; tooltip = f"{ds}: {count} treino(s)"
                     cells_by_row[row_idx].append((color, border, tooltip, day))
 
-            # HTML da grade
-            grid_html = "<div style='display:flex;gap:6px;align-items:flex-start;overflow-x:auto;padding-bottom:8px;'>"
+            desktop_html = "<div style='display:flex;gap:6px;align-items:flex-start;overflow-x:auto;padding-bottom:8px;'>"
+            desktop_html += "<div style='display:flex;flex-direction:column;gap:3px;padding-top:20px;'>"
+            for lbl in day_labels:
+                desktop_html += f"<div style='height:13px;width:28px;font-size:0.65rem;color:#555;line-height:13px;'>{lbl}</div>"
+            desktop_html += "</div>"
 
-            # Labels dos dias da semana
-            grid_html += "<div style='display:flex;flex-direction:column;gap:3px;padding-top:20px;'>"
-            for label in day_labels:
-                grid_html += f"<div style='height:13px;width:28px;font-size:0.65rem;color:#555;line-height:13px;'>{label}</div>"
-            grid_html += "</div>"
-
-            # Colunas de semanas com labels de mês no topo
             for w_idx, week in enumerate(weeks):
-                # Label do mês se for a primeira semana do mês
                 first_day = week[0][0]
                 month_label = ""
                 month_key = first_day.strftime("%Y-%m")
                 if month_key not in month_seen and first_day.day <= 7:
                     month_label = first_day.strftime("%b")
                     month_seen.add(month_key)
-
-                grid_html += "<div style='display:flex;flex-direction:column;gap:3px;'>"
-                grid_html += f"<div style='height:16px;font-size:0.65rem;color:#666;'>{month_label}</div>"
+                desktop_html += "<div style='display:flex;flex-direction:column;gap:3px;'>"
+                desktop_html += f"<div style='height:16px;font-size:0.65rem;color:#666;'>{month_label}</div>"
                 for row_idx in range(7):
                     color, border, tooltip, day = cells_by_row[row_idx][w_idx]
                     style = f"width:13px;height:13px;border-radius:2px;background:{color};border:{border};flex-shrink:0;"
-                    if tooltip:
-                        grid_html += f"<div style='{style}' title='{tooltip}'></div>"
+                    desktop_html += f"<div style='{style}' title='{tooltip}'></div>" if tooltip else f"<div style='{style}'></div>"
+                desktop_html += "</div>"
+            desktop_html += "</div>"
+
+            # ── Mobile ────────────────────────────────────────────────────────
+            mobile_html = "<div style='display:flex;flex-direction:column;align-items:center;'>"
+            mobile_html += "<div style='display:flex;gap:4px;margin-bottom:6px;'>"
+            for lbl in day_labels:
+                mobile_html += f"<div style='width:36px;font-size:0.65rem;color:#555;text-align:center;'>{lbl}</div>"
+            mobile_html += "</div>"
+
+            month_seen_m = set()
+            for week in reversed(weeks):
+                first_day = week[0][0]
+                month_key = first_day.strftime("%Y-%m")
+                if month_key not in month_seen_m:
+                    mobile_html += f"<div style='font-size:0.75rem;font-weight:700;color:#666;margin:10px 0 4px;text-transform:uppercase;letter-spacing:1px;'>{first_day.strftime('%b %Y')}</div>"
+                    month_seen_m.add(month_key)
+                mobile_html += "<div style='display:flex;gap:4px;margin-bottom:4px;'>"
+                for day, ds, count in week:
+                    if day < inicio or day > hoje:
+                        color = "transparent"; border = "none"; tooltip = ""
+                    elif count == 0:
+                        color = "#1a1a1a"; border = "1px solid #2a2a2a"; tooltip = ds
                     else:
-                        grid_html += f"<div style='{style}'></div>"
-                grid_html += "</div>"
+                        color = "#FF0000"; border = "none"; tooltip = f"{ds}: {count} treino(s)"
+                    txt_color = "#000" if color == "#FF0000" else "#444"
+                    style = f"width:36px;height:36px;border-radius:4px;background:{color};border:{border};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:{txt_color};"
+                    day_num = day.day if (day >= inicio and day <= hoje) else ""
+                    mobile_html += f"<div style='{style}' title='{tooltip}'>{day_num}</div>"
+                mobile_html += "</div>"
+            mobile_html += "</div>"
 
-            grid_html += "</div>"
-
-            # Legenda
-            grid_html += """
+            legenda = """
             <div style='display:flex;align-items:center;gap:6px;margin-top:10px;font-size:0.72rem;color:#555;'>
                 <div style='width:13px;height:13px;border-radius:2px;background:#1a1a1a;border:1px solid #2a2a2a'></div>
                 <span>Sem treino</span>
@@ -289,7 +294,21 @@ def render_estatisticas():
                 <span>Treinou</span>
             </div>"""
 
-            st.markdown(grid_html, unsafe_allow_html=True)
+            full_html = f"""
+            <div>
+                <div class="freq-desktop">{desktop_html}{legenda}</div>
+                <div class="freq-mobile">{mobile_html}{legenda}</div>
+            </div>
+            <style>
+                .freq-mobile {{ display: none; }}
+                .freq-desktop {{ display: block; }}
+                @media (max-width: 768px) {{
+                    .freq-mobile {{ display: block; }}
+                    .freq-desktop {{ display: none; }}
+                }}
+            </style>
+            """
+            st.markdown(full_html, unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════════════════════
     # MODO: EXERCÍCIO
@@ -303,6 +322,7 @@ def render_estatisticas():
         opcoes_ex = [nome for (_, nome, _, _, _) in exercicios_db]
         col_sel, _ = st.columns([2, 4])
         with col_sel:
+
             ex_sel = st.selectbox("Selecione o exercício", opcoes_ex, key="stats_ex_sel")
 
         stats = obter_stats_por_exercicio(ex_sel)
@@ -329,27 +349,31 @@ def render_estatisticas():
         divider()
 
         tab1, tab2, tab3 = st.tabs([
-            "📦 Volume por sessão",
-            "🏋️ Peso máximo por sessão",
-            "🏆 1RM estimado por sessão",
+            "Volume por sessão",
+            "Peso máximo por sessão",
+            "1RM estimado por sessão",
         ])
 
         with tab1:
-            st.markdown(f"#### Volume total por sessão — {ex_sel}")
+            st.markdown(f'<div class="chart-title">Volume por sessão — {ex_sel}</div>',
+                        unsafe_allow_html=True)
             st.line_chart(
                 df_sessao[["volume_total"]].rename(columns={"volume_total": "Volume (kg×reps)"}),
                 color="#FF0000", height=260
             )
         with tab2:
-            st.markdown(f"#### Peso máximo levantado por sessão — {ex_sel}")
+            st.markdown(f'<div class="chart-title">Peso máximo por sessão — {ex_sel}</div>',
+            unsafe_allow_html=True)
             st.line_chart(
                 df_sessao[["peso_max"]].rename(columns={"peso_max": "Peso máx (kg)"}),
                 color="#FF0000", height=260
             )
         with tab3:
-            st.markdown(f"#### 1RM estimado por sessão — {ex_sel}")
-            st.caption("Fórmula de Epley ajustada com RIR: 1RM = carga × (1 + 0.0333 × (reps + RIR)) — melhor série do dia")
+            st.markdown(f'<div class="chart-title">1RM estimado por sessão — {ex_sel}</div>',
+            unsafe_allow_html=True)
             st.line_chart(
                 df_sessao[["pr_estimado"]].rename(columns={"pr_estimado": "1RM estimado (kg)"}),
                 color="#FF0000", height=260
             )
+            st.caption("Fórmula de Epley ajustada com RIR:   \n1RM = carga × (1 + 0.0333 × (reps + RIR)) — melhor série do dia")
+            
