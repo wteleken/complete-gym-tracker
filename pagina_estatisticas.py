@@ -41,6 +41,20 @@ def chart_barras(data, col_nome, col_valor, height=300):
     d = df[col_valor].to_dict()
     st.bar_chart(d, color="#FF0000", height=height, sort=False, horizontal=True)
 
+def render_body_map(dados_musculo):
+    """Renderiza mapa do corpo humano colorido por volume muscular.
+    dados_musculo: lista de [nome_musculo, volume]
+    """
+    import streamlit.components.v1 as components
+    import json, os
+    data_dict = {row[0]: row[1] for row in dados_musculo} if dados_musculo else {}
+    data_json = json.dumps(data_dict, ensure_ascii=False)
+    template_path = os.path.join(os.path.dirname(__file__), "body_map_template.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+    html = html.replace("%%MUSCLE_DATA%%", data_json)
+    components.html(html, height=380, scrolling=False)
+
 # ── Render ────────────────────────────────────────────────────────────────────
 
 def render_estatisticas():
@@ -107,12 +121,17 @@ def render_estatisticas():
         chart_volume_semanal(obter_volume_semanal())
 
         divider()
+        col1t, col2t = st.columns(2)
+        with col1t:
+            st.markdown('<div class="chart-title">Mapa muscular — volume médio (AVG 3W)</div>',
+                        unsafe_allow_html=True, text_alignment="center")
+            render_body_map(obter_media_volume_semanal_por_musculo(n_semanas=3))
 
-
-        st.markdown('<div class="chart-title">Volume semanal por músculo (AVG 3W)</div>',
-                    unsafe_allow_html=True, text_alignment="center")
-        chart_barras(obter_media_volume_semanal_por_musculo(n_semanas=3),
-                        "Músculo", "Média Vol. (kg×reps)", height=320)
+        with col2t:
+            st.markdown('<div class="chart-title">Volume semanal por músculo (AVG 3W)</div>',
+                        unsafe_allow_html=True, text_alignment="center")
+            chart_barras(obter_media_volume_semanal_por_musculo(n_semanas=3),
+                            "Músculo", "Média Vol. (kg×reps)", height=320)
 
         divider()
 
@@ -376,4 +395,16 @@ def render_estatisticas():
                 color="#FF0000", height=260
             )
             st.caption("Fórmula de Epley ajustada com RIR:   \n1RM = carga × (1 + 0.0333 × (reps + RIR)) — melhor série do dia")
-            
+
+
+
+
+
+
+
+
+
+
+
+
+
