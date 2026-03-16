@@ -42,6 +42,7 @@ from sqlmgnt import (
 from pagina_exercicios import render_adicionar_exercicio
 from pagina_treinos import render_adicionar_treino
 from pagina_estatisticas import render_estatisticas
+from pagina_dieta import render_dieta
 
 create_database()
 
@@ -197,6 +198,7 @@ with st.sidebar:
         "Registrar Treino",
         "Exercícios",
         "Planos de Treino",
+        "Dieta & Peso",
         "Estatísticas",
     ]
 
@@ -500,3 +502,12 @@ elif pagina == "Estatísticas":
     }
     </style>""", unsafe_allow_html=True)
     render_estatisticas()
+
+elif pagina == "Dieta & Peso":
+    st.markdown("""<style>
+    @media (max-width: 1200px) {
+        div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; flex-direction: row !important; }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] { flex: 1 1 100% !important; width: 100% !important; }
+    }
+    </style>""", unsafe_allow_html=True)
+    render_dieta()

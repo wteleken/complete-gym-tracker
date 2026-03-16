@@ -1,6 +1,13 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 from sqlmgnt import *
+from sqlmgnt_dieta import (
+    MACRO_FIELDS, MACRO_LABELS,
+    obter_media_macros_ultimas_semanas,
+    obter_macros_por_dia,
+    listar_pesos,
+)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +84,13 @@ def render_estatisticas():
     }
     .section-divider { border: none; border-top: 1px solid #2a2a2a; margin: 1.5rem 0; }
     .chart-title { font-size: 0.95rem; font-weight: 700; color: #ccc; margin-bottom: 0.3rem; }
+    .macro-avg-card {
+        background: #1a1a1a; border-radius: 10px; padding: 0.75rem 1rem;
+        border-left: 3px solid #FF0000; margin-bottom: 0.4rem;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .macro-avg-label { color: #888; font-size: 0.8rem; }
+    .macro-avg-value { color: #FF0000; font-weight: 700; font-size: 1rem; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -92,7 +106,7 @@ def render_estatisticas():
     if "stats_modo" not in st.session_state:
         st.session_state.stats_modo = "Tudo"
 
-    modos = ["Tudo", "Treino", "Músculo", "Exercício", "Frequência"]
+    modos = ["Tudo", "Treino", "Músculo", "Exercício", "Frequência", "Peso & Dieta"]
     cols_modo = st.columns(len(modos))
     for i, modo in enumerate(modos):
         ativo = st.session_state.stats_modo == modo
@@ -396,15 +410,108 @@ def render_estatisticas():
             )
             st.caption("Fórmula de Epley ajustada com RIR:   \n1RM = carga × (1 + 0.0333 × (reps + RIR)) — melhor série do dia")
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # MODO: PESO & DIETA
+    # ══════════════════════════════════════════════════════════════════════════
+    elif modo == "Peso & Dieta":
+        from datetime import date, timedelta
 
+        # ── KPIs: médias de macros nas últimas 3 semanas ──────────────────────
+        medias = obter_media_macros_ultimas_semanas(n_semanas=3)
 
+        if not medias:
+            st.info("Nenhum dado de dieta registrado ainda. Registre suas refeições na aba 'Dieta & Peso'.")
+        else:
+            st.markdown('<div class="chart-title">Média diária dos macros (AVG 3W)</div>',
+                        unsafe_allow_html=True)
+            st.write("")
 
+            # Linha 1: macros principais
+            col1, col2, col3, col4 = st.columns(4)
+            kpi_card(col1, f"{medias.get('calorias', 0):.0f}",         "Kcal / dia")
+            kpi_card(col2, f"{medias.get('proteinas', 0):.1f}g",       "Proteínas / dia")
+            kpi_card(col3, f"{medias.get('carboidratos', 0):.1f}g",    "Carboidratos / dia")
+            kpi_card(col4, f"{medias.get('gorduras_totais', 0):.1f}g", "Gorduras totais / dia")
 
+            st.write("")
 
+            # Linha 2: macros secundários
+            col5, col6, col7, col8 = st.columns(4)
+            kpi_card(col5, f"{medias.get('fibras', 0):.1f}g",               "Fibras / dia")
+            kpi_card(col6, f"{medias.get('sodio', 0):.0f}mg",               "Sódio / dia")
+            kpi_card(col7, f"{medias.get('gorduras_saturadas', 0):.1f}g",   "Gord. saturadas / dia")
+            kpi_card(col8, f"{medias.get('acucares', 0):.1f}g",             "Açúcares / dia")
 
+        divider()
 
+        # ── Gráfico: macro por dia (com dropdown) ─────────────────────────────
+        st.markdown('<div class="chart-title">macro por dia</div>', unsafe_allow_html=True)
 
+        col_sel_macro, col_sel_periodo, _ = st.columns([2, 2, 2])
+        with col_sel_macro:
+            macro_opcoes = {MACRO_LABELS[f]: f for f in MACRO_FIELDS}
+            macro_label_sel = st.selectbox(
+                "Macro",
+                list(macro_opcoes.keys()),
+                key="stats_macro_sel",
+            )
+            macro_sel = macro_opcoes[macro_label_sel]
 
+        with col_sel_periodo:
+            periodo_opcoes = {
+                "Últimos 30 dias": 30,
+                "Últimos 60 dias": 60,
+                "Últimos 90 dias": 90,
+                "Últimos 6 meses": 180,
+                "Todo o período":  None,
+            }
+            periodo_label = st.selectbox("Período", list(periodo_opcoes.keys()), key="stats_periodo_dieta")
+            dias_periodo = periodo_opcoes[periodo_label]
 
+        hoje = date.today()
+        data_inicio_str = (hoje - timedelta(days=dias_periodo)).isoformat() if dias_periodo else None
+        data_fim_str = hoje.isoformat()
 
+        dados_macro = obter_macros_por_dia(
+            macro_sel,
+            data_inicio=data_inicio_str,
+            data_fim=data_fim_str + "T23:59:59",
+        )
 
+        if dados_macro:
+            df_macro = pd.DataFrame(dados_macro, columns=["Data", macro_label_sel])
+            df_macro["Data"] = pd.to_datetime(df_macro["Data"])
+            df_macro = df_macro.set_index("Data")
+            st.line_chart(df_macro, color="#FF0000", height=260)
+        else:
+            st.info("Sem dados de dieta no período selecionado.")
+
+        divider()
+
+        # ── Gráfico: Peso × dia ───────────────────────────────────────────────
+        st.markdown('<div class="chart-title">Peso por dia</div>', unsafe_allow_html=True)
+
+        pesos = listar_pesos()
+        if pesos:
+            df_peso = pd.DataFrame(pesos, columns=["Data", "Peso (kg)"])
+            df_peso["Data"] = pd.to_datetime(df_peso["Data"])
+            df_peso = df_peso.sort_values("Data")
+            peso_min = df_peso["Peso (kg)"].min()
+            peso_max = df_peso["Peso (kg)"].max()
+            y_min = round(peso_min * 0.99, 1)
+            y_max = round(peso_max + (peso_max - peso_min) * 0.1 + 0.5, 1)
+            chart = (
+                alt.Chart(df_peso)
+                .mark_line(color="#FF0000", strokeWidth=2, point=alt.OverlayMarkDef(color="#FF0000", size=40))
+                .encode(
+                    x=alt.X("Data:T", axis=alt.Axis(format="%d/%m", labelColor="#666", tickColor="#333", domainColor="#333")),
+                    y=alt.Y("Peso (kg):Q", scale=alt.Scale(domain=[y_min, y_max]),
+                            axis=alt.Axis(labelColor="#666", tickColor="#333", domainColor="#333", gridColor="#222")),
+                    tooltip=[alt.Tooltip("Data:T", format="%d/%m/%Y"), alt.Tooltip("Peso (kg):Q", format=".1f")],
+                )
+                .properties(height=240, background="transparent")
+                .configure_view(strokeWidth=0)
+            )
+            st.altair_chart(chart, use_container_width=True)
+
+        divider()
